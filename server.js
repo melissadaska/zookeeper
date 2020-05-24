@@ -1,4 +1,6 @@
 // start by requiring the data
+const fs = require('fs');
+const path = require('path');
 const { animals } = require('./data/animals');
 
 const express = require('express');
@@ -7,6 +9,18 @@ const PORT = process.env.PORT || 3001;
 
 //instantiate the server... Assign express to app variable so that we can leter chain on methods to the Express.js server
 const app = express();
+
+
+// app.use() mounts a function to the server that our requests will pass through before getting to intended endpoint... the functions we can mount to our server are referred to as middleware
+
+// express.urlencoded({extended: true}) is a method built into Express.js that takes incoming POST data and converts to key/value pairings that can be accessed in the req.body object
+// extended:true option informs server that there may be sub-array data nested in it as well so it needs to look deep into POST data to parse all data correctly
+// both of these middleware functions need to be setup every time you create a server that's looking to accept POST data
+
+// parse incoming string or array data
+app.use(express.urlencoded({ extended: true }));
+// takes incoming POSt data in form of JSON and parses it into the req.body
+app.use(express.json());
 
 function filterByQuery(query, animalsArray) {
     let personalityTraitsArray = [];
@@ -52,6 +66,39 @@ function findById(id, animalsArray) {
     return result;
 }
 
+function createNewAnimal(body, animalsArray) {
+  console.log(body);
+  // our function's main code will go here!
+  const animal = body;
+  animalsArray.push(animal);
+
+  fs.writeFileSync(
+    path.join(__dirname, './data/animals.json'),
+    // null and 2 keep our data formatted... null means we don't want to edit existing data, 2 indicates we want to create white space between our values to make more readable
+    JSON.stringify({ animals: animalsArray }, null, 2)
+  );
+
+  // return finished code to post route for response
+  return animal;
+  
+}
+
+function validateAnimal(animal) {
+  if (!animal.name || typeof animal.name !== 'string') {
+    return false;
+  }
+  if (!animal.species || typeof animal.species !== 'string') {
+    return false;
+  }
+  if (!animal.diet || typeof animal.diet !== 'string') {
+    return false;
+  }
+  if (!animal.personalityTraits || !Array.isArray(animal.personalityTraits)) {
+    return false;
+  }
+  return true;
+}
+
 // add the route
 // req = request, res = response
 app.get('/api/animals', (req, res) => {
@@ -75,4 +122,21 @@ app.get('/api/animals/:id', (req, res) => {
 // Think of the port like a building/classroom at a college; it gives the exact destination on the host
 app.listen(PORT, () => {
     console.log(`API server now on port ${PORT}!`);
+});
+
+// setup a route on server that accepts data to be used or stored server-side (listens for POST request, not GET requests... POST requests represent the action of a client requesting the server to accept data rather than vice versa)
+app.post('/api/animals', (req, res) => {
+  // set id based on what the next index of the array will be
+  req.body.id = animals.length.toString();
+
+
+  // if any data in req.body is incorrect, send 400 error back
+  if (!validateAnimal(req.body)) {
+    res.status(400).send('The animal is not properly formatted.');
+  } else {
+    // add animal to json file and animals array in this function
+    const animal = createNewAnimal(req.body, animals);
+
+    res.json(animal);
+  }
 });
