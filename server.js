@@ -1,6 +1,6 @@
-// start by requiring the data
 const fs = require('fs');
 const path = require('path');
+// start by requiring the data
 const { animals } = require('./data/animals');
 
 const express = require('express');
@@ -21,6 +21,9 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 // takes incoming POSt data in form of JSON and parses it into the req.body
 app.use(express.json());
+
+// provide file path to location in our app and instruct server to make these files static resources (can be accessed without having a specific server endpoint)
+app.use(express.static('public'));
 
 function filterByQuery(query, animalsArray) {
     let personalityTraitsArray = [];
@@ -99,8 +102,7 @@ function validateAnimal(animal) {
   return true;
 }
 
-// add the route
-// req = request, res = response
+// add the route, req = request, res = response
 app.get('/api/animals', (req, res) => {
     let results = animals;
     if (req.query) {
@@ -116,6 +118,19 @@ app.get('/api/animals/:id', (req, res) => {
     } else {
         res.send(404);
     }
+});
+
+// add routes to the three html files... "/" brings us to the root route of the server (route used to create homepage)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, './public/index.html'));
+});
+
+app.get('/animals', (req, res) => {
+  res.sendFile(path.join(__dirname, './public/animals.html'));
+});
+
+app.get('/zookeepers', (req, res) => {
+  res.sendFile(path.join(__dirname, './public/zookeepers.html'));
 });
 
 // To make our server listen, chain the listen() method onto our server
